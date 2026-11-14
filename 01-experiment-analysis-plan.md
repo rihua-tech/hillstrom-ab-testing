@@ -3,15 +3,16 @@
 **Project:** Marketing Campaign A/B/n Testing & Causal Impact Analysis  
 **Dataset:** Hillstrom / MineThatData E-Mail Analytics Challenge (historical randomized experiment)  
 **Repository:** `hillstrom-ab-testing`  
-**Plan version:** 1.0-draft | **Prepared:** 2026-11-13  
-**Status:** OUTCOME-BLIND DRAFT — **not frozen until committed to Git**  
-**Planned freeze evidence:** First Git commit containing this file; record commit SHA in the analysis log when the commit is made.
+**Plan version:** 1.1 (proposed post-freeze amendment) | **Original prepared:** 2026-11-13 | **Revised:** 2026-11-14\
+**Status:** Original v1.0 baseline already committed; **v1.1 is not frozen until the new Git commit is pushed**. No treatment-arm-level outcome analysis has been performed for this project.\
+**Original baseline commit:** [`d6fe8f00970805510cfc0af36483a14e486d09f9`](https://github.com/rihua-tech/hillstrom-ab-testing/commit/d6fe8f00970805510cfc0af36483a14e486d09f9) (`docs: freeze outcome-blind experiment analysis plan`).\
+**v1.1 evidence (pending):** Record the new commit SHA and optional `plan-v1.1` tag after push. Do not rewrite the original commit.
 
-> **Integrity statement.** This is a *pre-specified analysis plan* written before this project's treatment-arm outcome analysis. The underlying experiment is public and historical; this is **not** an original-trial pre-registration. No group-level treatment effects, conversion results, visit results, revenue results, or outcome-derived model selections have been examined for this project while preparing this plan. Public experiment design and data definitions are permitted sources. Changes after the freeze commit must be transparently versioned and labeled deviations or exploratory analyses; the Git history must be retained.
+> **Integrity statement and limited prior exposure.** This is a *pre-specified analysis plan* for the analysis of a public historical experiment, **not** a pre-registration of the original trial. Before the original Git commit, an AI-assistant message mentioned an **approximate pooled purchase-conversion rate (~0.9%)**. This value was **not independently verified**, and is **not an arm-specific outcome or treatment effect**. No treatment-arm-specific conversion, visit, or revenue results; treatment-effect estimates; or hypothesis-test results were examined in preparing the original plan or this amendment. The supplementary baseline scenarios in v1.1 were chosen **after that limited pooled-rate exposure** and must not be represented as fully outcome-blind. The original frozen methods remain in Git history; changes in v1.1 are explicitly classified below. Never rewrite history to hide deviations.
 
 ## 1. Business question and scope
 
-**Question:** Do merchandise-promotion emails causally increase purchase conversion relative to no email, and what incremental business value might their effects create?
+**Question:** What is the causal effect of assigning customers to each merchandise-promotion email on two-week purchase conversion versus no email, and under what assumed margins and email costs might each strategy generate positive incremental contribution?
 
 The original experiment randomly assigned approximately 64,000 customers to one of three arms, with a two-week post-email observation window:
 
@@ -74,7 +75,19 @@ where 0 indicates Control. The analysis estimates **absolute conversion-rate dif
 
 **Between-treatment comparison:** M vs W is **not** part of the confirmatory family. Differences between their estimated effects may be shown descriptively for decision context, but no statistically established superiority claim may be made without a separately disclosed, appropriately adjusted head-to-head analysis (labeled exploratory here).
 
-**No post-hoc power analysis or data-driven success threshold:** Effect magnitudes and uncertainty are primary. Do not choose a minimum detectable effect after inspecting outcomes. No minimum practical effect is imposed without known campaign economics; business sensitivity analysis will supply decision context instead.
+**No observed-effect post-hoc power or data-driven success threshold:** Effect magnitudes and uncertainty are primary. Do not calculate retrospective power using observed treatment effects, select a success threshold based on significance, or reinterpret a detectable effect as the minimum *business-important* effect. Without verified campaign economics, business sensitivity analysis supplies decision context.
+
+### Design-based sensitivity / minimum detectable effect (MDE) — illustrative
+
+These are **approximate detection limits**, **not** estimates from the historical treatment arms and **not** formal power calculations of the original trial. Assume three equally sized arms from a nominal total of `N = 64,000` (`n ≈ 21,333` per arm), a two-sided normal-approximation two-proportion test, **80% power**, and `alpha = 0.025` for each treatment-versus-control calculation. Using 0.025 represents the **conservative first-step threshold** of the two-test Holm procedure; Holm is step-down and does not always use 0.025 for every hypothesis. The actual confirmatory analysis will still use the locked score tests and Holm correction.
+
+| Hypothetical control conversion | Approximate detectable absolute increase | Approximate treatment conversion |
+| --- | ---: | ---: |
+| 0.5% | +0.233 percentage points | 0.733% |
+| 1.0% | +0.319 percentage points | 1.319% |
+| 2.0% | +0.439 percentage points | 2.439% |
+
+The table uses a normal approximation with arcsine/Cohen's *h* for unequal proportions and equal arm sizes; its figures are **rounded scenario calculations**, not exact finite-sample score-test or joint-Holm power guarantees. Baseline rates `{0.005, 0.01, 0.02}` are **hypothetical scenarios selected after the unverified pooled-rate remark (~0.9%) had been seen**, and should not be described as wholly outcome-blind. No observed effect size was used. This exercise communicates *power limitations*; it does not add a third confirmatory test or change the decision threshold.
 
 ## 4. Secondary metrics (not confirmatory success gates)
 
@@ -107,6 +120,7 @@ Use **regression adjustment**, not a choice made after observing whether CUPED i
 - **Locked adjustment covariates:** `log1p(history)`, `recency`, `newbie`, `mens`, `womens`, categorical `channel`, and categorical `zip_code`; omit `history_segment` as redundant. Do not use `visit`, `conversion`, or `spend` as predictors.
 - **Pre-treatment missing values:** For numerical covariates, median-impute using the pooled (treatment-blind) distribution and add missingness indicators; for categorical covariates, use an explicit `Missing` category. These operations are defined without outcome labels. Invalid historical spend values must be investigated before logarithmic transformation.
 - **Reporting:** Compare adjusted and unadjusted estimates, HC3 standard errors, and 95% intervals. Compute the descriptive variance-reduction quantity \(1 - (SE_{adj}/SE_{unadj,HC3})^2\) using **comparable HC3 SEs** from the unadjusted and adjusted regressions. This quantity may be negative. Do **not** substitute the adjusted significance result for the primary Holm decision.
+- **Relationship to CUPED:** CUPED and Lin-style regression adjustment both use pre-treatment information to improve precision. Standard single-covariate CUPED is a simpler control-variate adjustment; the pre-specified fully interacted Lin regression is **not equivalent** to standard CUPED. No separate CUPED estimator will be built merely to add another method.
 - **No guaranteed gain:** If historical features are weakly predictive, report negligible or adverse precision changes. CUPED is not required as a second competing technique in this fixed-scope project.
 
 ## 7. Pre-specified heterogeneous treatment effects
@@ -126,13 +140,14 @@ For each moderator, fit a linear probability model containing indicators for M a
 
 **Purpose:** Independently assess that test logic, p-value adjustment, effect estimates, and confidence intervals behave as expected **before accepting experiment interpretations**. Simulated customers are not the Hillstrom customers.
 
-- **Reproducibility:** Fixed pseudorandom seed `20261113`; **2,000 independent simulation replications per scenario**; three randomly assigned arms per replication with approximately 1:1:1 assignment; simulated total sample size `n = 64,000` (based on public design metadata only).
-- **A/A scenario:** Bernoulli purchase outcomes with the **same** synthetic baseline probability `p = 0.02` in all three arms. Record empirical false-positive rate for each **unadjusted** primary test, and empirical family-wise error rate (probability of ≥1 false positive) for the **two-test Holm family**. The unadjusted rate should be statistically compatible with 0.05, while Holm FWER should be **at most 0.05 in expectation**. Use a three-Monte-Carlo-SE tolerance for diagnostic checks; do not demand exactly 5% observed false positives.
-- **Known-effect scenario:** Synthetic `p_Control = 0.02`, `p_M = 0.025`, `p_W = 0.02`, so true risk differences are +0.005 and 0. Evaluate average estimated bias and coverage of each **unadjusted 95% Newcombe interval**. The sample mean bias must fall within three empirical Monte Carlo standard errors of zero, and coverage must be compatible with 95% using a three-Monte-Carlo-SE diagnostic band.
-- **Adjustment scenario:** Separately generate a synthetic baseline covariate that **predicts** the binary outcome while treatment remains randomized. Check that the HC3 adjustment estimates the known treatment effect without material bias; compare precision with unadjusted estimates. If a nonpredictive synthetic covariate is also used as a negative control, no precision improvement is expected.
-- **Validation review:** Record per-scenario estimates, error rates, confidence interval coverage, tolerances, and run seed. Debug code or document assumptions if diagnostics fail. No adjustment method can be declared 'better' just because it appears favorable on the historical observed outcomes.
+- **Reproducibility:** Fixed pseudorandom seed `20261113`; **2,000 independent replications per scenario**; three randomized arms per replication at approximately 1:1:1; simulated total `n = 64,000` (from public design metadata). Use simulated data **only**, never actual treatment-arm outcomes to choose simulation parameters.
+- **Unadjusted A/A scenarios:** Independently simulate Bernoulli purchase outcomes with **no effect** and the same synthetic baseline probability in all arms, for **each** `p ∈ {0.005, 0.01, 0.02}`. Record each score test's unadjusted 5% false-positive rate and the probability of **one or more rejections after two-test Holm correction**. Use three-Monte-Carlo-SE tolerance bands around the appropriate 0.05 reference (the Holm FWER should not materially exceed 0.05), not an exact 5% pass requirement. Simulate the *joint three-arm design* with a shared Control; the two tests are dependent.
+- **Known-effect scenario (unchanged):** Synthetic `p_Control = 0.02`, `p_M = 0.025`, `p_W = 0.02`, giving true risk differences +0.005 and 0. Check average bias and **per-comparison unadjusted 95% Newcombe CI coverage**, with three-Monte-Carlo-SE diagnostic bands. Do not mistake those intervals for simultaneous Holm-adjusted intervals.
+- **Regression-adjusted known-effect scenario (retained):** Separately simulate a predictive **pre-treatment** covariate with randomized treatment. Check that the fixed HC3 fully interacted Lin regression estimates the known effect without material bias; compare adjusted and unadjusted precision. No precision gain is guaranteed.
+- **Regression-adjusted A/A scenario (added in v1.1):** Use a predictive pre-treatment covariate and a **zero treatment effect** at synthetic baseline `p = 0.01`. Across **2,000 replications**, assess both HC3 Lin treatment tests' nominal two-sided 5% false-positive rates and their **two-test Holm family-wise error rate**. These are validation diagnostics for a *secondary* estimator, not substitutes for the locked confirmatory unadjusted tests. Report Monte Carlo uncertainty and investigate material inflation.
+- **Validation review:** Record scenario definitions, estimates, Monte Carlo uncertainty, false-positive rates, family-wise rates, bias, confidence interval coverage, and seed. Debug code or document model/test assumptions if diagnostics fail; never tune the method to historical observed outcomes.
 
-Because both contrasts share a control, their null test statistics are **dependent**; the A/A family-wise evaluation must simulate the complete three-arm experiment, not treat two p-values as independent.
+Because both contrasts share Control, their null test statistics are **dependent**. Use complete three-arm simulations rather than independently sampled contrast p-values. The expanded low-rate simulation settings are v1.1 supplements, not conditions asserted at the original freeze.
 
 ## 9. Business impact and decision policy
 
@@ -162,20 +177,30 @@ The final reporting package will include: an executive summary, a comparison tab
 
 **No invented results, no post-treatment adjustment, no significance-driven metric changes, no dashboard, no web app, and no new unrelated models or projects.**
 
-**Change control after plan freeze:** Record the original SHA, changed section, rationale, and timestamp in a `Deviations from pre-specified plan` section to be added at the first deviation. Distinguish prerequired fixes, sensitivity analyses, and post-hoc discoveries. Never rewrite Git history to conceal changes.
+**Change control after plan freeze:** Preserve the original baseline commit and transparently version later edits. Record the new SHA once committed and pushed. Distinguish editorial clarification from *pre-analysis methodological additions*, and label any changes made after arm-level results as exploratory/post-hoc. Never rewrite Git history to conceal changes.
+
+### Plan change log (post-baseline amendment)
+
+| Version | Timing and provenance | Change classification | What changed |
+| --- | --- | --- | --- |
+| v1.0 baseline | First public Git commit `d6fe8f0` (2026-11-14 UTC) | Original pre-analysis baseline | Locked conversion ITT estimands, two primary contrasts, score tests, Holm correction, secondary metrics, regression adjustment, moderator set, simulation core and business decision rules. Although labeled `draft` in that file, it was committed before treatment-arm outcome analysis. |
+| v1.1 proposed | 2026-11-14; **commit SHA pending** | Transparency + editorial clarifications | Disclosed unverified pooled conversion-rate remark (~0.9%); aligned research question and document status; clarified relationship between CUPED and Lin. |
+| v1.1 proposed | 2026-11-14; **commit SHA pending** | **Pre-arm-level-outcome methodological supplements (not present in v1.0)** | Added hypothetical design-based MDE scenarios, low-baseline unadjusted A/A settings, and regression-adjusted A/A error-rate diagnostics. These supplement validation; they do not alter the original primary hypotheses, alpha, tests, decision rule, or subgroup scope. |
+
+**Audit follow-up:** After the v1.1 changes are reviewed locally, commit and push them **before accessing arm-level outcomes**; optionally add an annotated `plan-v1.1` tag. Record the resulting commit SHA in the GitHub commit record or a separate analysis log; do not try to embed a commit's own SHA in the file being committed. A Git tag is a useful reference but not an immutable timestamp guarantee. A SHA-256 digest may also be stored in an independent analysis log; it is not evidence of scientific pre-registration.
 
 ## 11. Phase gates and definition of done
 
 | Phase | Deliverables | Acceptance criteria | Boundary |
 | --- | --- | --- | --- |
-| **0 — Foundation (current)** | Repository skeleton, README, `.gitignore`, this plan | Plan review; commit with timestamp and SHA **before** exposure to outcomes | No dataset download, outcome preview, statistical code, or result claims |
+| **0 — Foundation (baseline complete; v1.1 update pending)** | Repository skeleton, README, `.gitignore`, this plan | Original baseline committed (`d6fe8f0`); v1.1 amendment reviewed/pushed before any arm-level outcome analysis | No dataset download, arm-level outcome preview, statistical code, or result claims |
 | **1 — Data integrity** | Provenance, quality checks, SRM, baseline balance, audit log, SQL reconciliation | Reproducible ingestion; exceptions resolved/documented; gate status recorded | No undocumented data pruning or hypothesis changes |
 | **2 — Simulation validation** | Implement inferential methods against synthetic A/A, known-effect, and predictive-covariate scenarios | Validate false positives, Holm FWER, bias, and CI coverage **before outcome inference** | No calibration to Hillstrom outcomes |
 | **3 — Experiment inference** | Primary conversion contrasts, Holm correction, secondary visit/spend, adjusted regression, two moderators | Correct hypothesis families; estimates, uncertainty, and limits reported | No metric shopping or uncontrolled subgroup search |
 | **4 — Business decision** | Decision memo, fixed sensitivity grid, limitations | Revenue/profit distinction; conditional recommendation; uncertainty shown | No invented costs |
 | **5 — Portfolio release** | Reproduction instructions, final README, tests, figures, concise findings | Clean reproducible run; peer-style review; Git commit history | **Stop scope expansion; transition to applications** |
 
-**Phase 0 is not accepted until an actual Git commit containing this plan exists.** A downloaded plan file alone is a draft, not proof of pre-specification.
+**Phase 0 baseline was committed as `d6fe8f0`.** The v1.1 supplements must receive a **separate** commit before accessing arm-level outcome data. An uncommitted local file is not a frozen amendment.
 
 ## 12. Methods references
 
@@ -183,4 +208,4 @@ The final reporting package will include: an executive summary, a comparison tab
 - `statsmodels` two-independent-proportion confidence intervals: https://www.statsmodels.org/stable/generated/statsmodels.stats.proportion.confint_proportions_2indep.html
 - `statsmodels` Holm multiplicity adjustment: https://www.statsmodels.org/stable/generated/statsmodels.stats.multitest.multipletests.html
 
-*No observed Hillstrom treatment-group result is included in this document.*
+*No observed Hillstrom treatment-group result is included in this document. An approximate, unverified pooled-rate remark previously seen in an AI response is disclosed above.*
