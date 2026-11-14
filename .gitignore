@@ -1,0 +1,31 @@
+# Raw and derived datasets (keep provenance and documentation tracked)
+/data/raw/
+/data/processed/
+*.parquet
+*.feather
+*.sqlite
+*.db
+
+# Python environment and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Environment secrets and local OS files
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
