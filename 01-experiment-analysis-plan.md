@@ -3,10 +3,10 @@
 **Project:** Marketing Campaign A/B/n Testing & Causal Impact Analysis  
 **Dataset:** Hillstrom / MineThatData E-Mail Analytics Challenge (historical randomized experiment)  
 **Repository:** `hillstrom-ab-testing`  
-**Plan version:** 1.1 (proposed post-freeze amendment) | **Original prepared:** 2026-11-13 | **Revised:** 2026-11-14\
-**Status:** Original v1.0 baseline already committed; **v1.1 is not frozen until the new Git commit is pushed**. No treatment-arm-level outcome analysis has been performed for this project.\
+**Plan version:** 1.1 (post-baseline amendment) | **Original prepared:** 2026-11-13 | **Revised:** 2026-11-14\
+**Status:** The original v1.0 baseline and the separate v1.1 amendment are committed; v1.1 is tagged `plan-v1.1`. This later documentation-only edit reconciles outdated status language after that tag. The project record states that no treatment-arm-level outcome analysis preceded the freezes; confirmation of that history remains a user attestation rather than an independent code-based verification.\
 **Original baseline commit:** [`d6fe8f00970805510cfc0af36483a14e486d09f9`](https://github.com/rihua-tech/hillstrom-ab-testing/commit/d6fe8f00970805510cfc0af36483a14e486d09f9) (`docs: freeze outcome-blind experiment analysis plan`).\
-**v1.1 evidence (pending):** Record the new commit SHA and optional `plan-v1.1` tag after push. Do not rewrite the original commit.
+**v1.1 amendment commit:** [`258866fd23f3b82c07827f55bd0f37467d941295`](https://github.com/rihua-tech/hillstrom-ab-testing/commit/258866fd23f3b82c07827f55bd0f37467d941295) (`docs: amend pre-analysis plan v1.1`); annotated tag: `plan-v1.1`. The original commit and tag remain unchanged.
 
 > **Integrity statement and limited prior exposure.** This is a *pre-specified analysis plan* for the analysis of a public historical experiment, **not** a pre-registration of the original trial. Before the original Git commit, an AI-assistant message mentioned an **approximate pooled purchase-conversion rate (~0.9%)**. This value was **not independently verified**, and is **not an arm-specific outcome or treatment effect**. No treatment-arm-specific conversion, visit, or revenue results; treatment-effect estimates; or hypothesis-test results were examined in preparing the original plan or this amendment. The supplementary baseline scenarios in v1.1 were chosen **after that limited pooled-rate exposure** and must not be represented as fully outcome-blind. The original frozen methods remain in Git history; changes in v1.1 are explicitly classified below. Never rewrite history to hide deviations.
 
@@ -45,7 +45,7 @@ The expected fields are defined by public documentation. **Do not inspect or com
 - Hillstrom, *MineThatData E-Mail Analytics And Data Mining Challenge* (2008): https://blog.minethatdata.com/2008/03/minethatdata-e-mail-analytics-and-data.html
 - Scikit-uplift documentation (republished experiment and field definitions): https://www.uplift-modeling.com/en/v0.3.1/api/datasets/fetch_hillstrom.html
 
-**Dataset provenance, file checksum, exact file location and download date:** To be recorded in Phase 1 *after* this plan is frozen. The raw dataset should remain outside version control unless its redistribution rights are explicitly verified.
+**Dataset provenance, file checksum, exact file location and download date:** To be recorded in Phase 1 *after* the completed plan freeze. The raw dataset should remain outside version control unless its redistribution rights are explicitly verified.
 
 ## 3. Estimands, primary metric, and hypotheses
 
@@ -177,30 +177,30 @@ The final reporting package will include: an executive summary, a comparison tab
 
 **No invented results, no post-treatment adjustment, no significance-driven metric changes, no dashboard, no web app, and no new unrelated models or projects.**
 
-**Change control after plan freeze:** Preserve the original baseline commit and transparently version later edits. Record the new SHA once committed and pushed. Distinguish editorial clarification from *pre-analysis methodological additions*, and label any changes made after arm-level results as exploratory/post-hoc. Never rewrite Git history to conceal changes.
+**Change control after plan freeze:** Preserve the original baseline commit and transparently version later edits, retaining their commit SHAs and tags as applicable. Distinguish editorial clarification from *pre-analysis methodological additions*, and label any changes made after arm-level results as exploratory/post-hoc. Never rewrite Git history to conceal changes.
 
 ### Plan change log (post-baseline amendment)
 
 | Version | Timing and provenance | Change classification | What changed |
 | --- | --- | --- | --- |
 | v1.0 baseline | First public Git commit `d6fe8f0` (2026-11-14 UTC) | Original pre-analysis baseline | Locked conversion ITT estimands, two primary contrasts, score tests, Holm correction, secondary metrics, regression adjustment, moderator set, simulation core and business decision rules. Although labeled `draft` in that file, it was committed before treatment-arm outcome analysis. |
-| v1.1 proposed | 2026-11-14; **commit SHA pending** | Transparency + editorial clarifications | Disclosed unverified pooled conversion-rate remark (~0.9%); aligned research question and document status; clarified relationship between CUPED and Lin. |
-| v1.1 proposed | 2026-11-14; **commit SHA pending** | **Pre-arm-level-outcome methodological supplements (not present in v1.0)** | Added hypothetical design-based MDE scenarios, low-baseline unadjusted A/A settings, and regression-adjusted A/A error-rate diagnostics. These supplement validation; they do not alter the original primary hypotheses, alpha, tests, decision rule, or subgroup scope. |
+| v1.1 amendment | Separate commit `258866f` (2026-11-14); annotated tag `plan-v1.1` | Transparency + editorial clarifications | Disclosed unverified pooled conversion-rate remark (~0.9%); aligned research question and document status; clarified relationship between CUPED and Lin. |
+| v1.1 amendment | Separate commit `258866f` (2026-11-14); annotated tag `plan-v1.1` | **Pre-arm-level-outcome methodological supplements (not present in v1.0)** | Added hypothetical design-based MDE scenarios, low-baseline unadjusted A/A settings, and regression-adjusted A/A error-rate diagnostics. These supplement validation; they do not alter the original primary hypotheses, alpha, tests, decision rule, or subgroup scope. |
 
-**Audit follow-up:** After the v1.1 changes are reviewed locally, commit and push them **before accessing arm-level outcomes**; optionally add an annotated `plan-v1.1` tag. Record the resulting commit SHA in the GitHub commit record or a separate analysis log; do not try to embed a commit's own SHA in the file being committed. A Git tag is a useful reference but not an immutable timestamp guarantee. A SHA-256 digest may also be stored in an independent analysis log; it is not evidence of scientific pre-registration.
+**Audit follow-up:** Completed for v1.1: the amendment was separately committed as `258866f`, pushed, and marked with the annotated `plan-v1.1` tag. This later documentation-only commit reconciles status text after the tag and does not modify the frozen methodology. Confirmation that arm-level outcomes were not inspected before the freezes remains a user attestation. A Git tag is a useful reference but not an immutable timestamp guarantee. A SHA-256 digest may also be stored in an independent analysis log; it is not evidence of scientific pre-registration.
 
 ## 11. Phase gates and definition of done
 
 | Phase | Deliverables | Acceptance criteria | Boundary |
 | --- | --- | --- | --- |
-| **0 — Foundation (baseline complete; v1.1 update pending)** | Repository skeleton, README, `.gitignore`, this plan | Original baseline committed (`d6fe8f0`); v1.1 amendment reviewed/pushed before any arm-level outcome analysis | No dataset download, arm-level outcome preview, statistical code, or result claims |
+| **0 — Foundation (complete; v1.1 committed and tagged)** | Repository skeleton, README, `.gitignore`, this plan | Original baseline committed (`d6fe8f0`); v1.1 amendment separately committed (`258866f`) and tagged (`plan-v1.1`); no-prior-arm-level-inspection attestation remains with the user | No dataset download, arm-level outcome preview, statistical code, or result claims |
 | **1 — Data integrity** | Provenance, quality checks, SRM, baseline balance, audit log, SQL reconciliation | Reproducible ingestion; exceptions resolved/documented; gate status recorded | No undocumented data pruning or hypothesis changes |
 | **2 — Simulation validation** | Implement inferential methods against synthetic A/A, known-effect, and predictive-covariate scenarios | Validate false positives, Holm FWER, bias, and CI coverage **before outcome inference** | No calibration to Hillstrom outcomes |
 | **3 — Experiment inference** | Primary conversion contrasts, Holm correction, secondary visit/spend, adjusted regression, two moderators | Correct hypothesis families; estimates, uncertainty, and limits reported | No metric shopping or uncontrolled subgroup search |
 | **4 — Business decision** | Decision memo, fixed sensitivity grid, limitations | Revenue/profit distinction; conditional recommendation; uncertainty shown | No invented costs |
 | **5 — Portfolio release** | Reproduction instructions, final README, tests, figures, concise findings | Clean reproducible run; peer-style review; Git commit history | **Stop scope expansion; transition to applications** |
 
-**Phase 0 baseline was committed as `d6fe8f0`.** The v1.1 supplements must receive a **separate** commit before accessing arm-level outcome data. An uncommitted local file is not a frozen amendment.
+**Phase 0 is complete:** the baseline was committed as `d6fe8f0`, and the v1.1 supplements received the separate commit `258866f` and annotated tag `plan-v1.1`. This documentation-only status correction occurs after that tag. The Git record verifies the commit and tag sequence; the absence of prior arm-level outcome inspection requires user attestation.
 
 ## 12. Methods references
 
