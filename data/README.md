@@ -58,3 +58,53 @@ if (Test-Path -LiteralPath $file) {
 }
 Get-FileHash -LiteralPath $file -Algorithm SHA256
 ```
+
+## Phase 1.2 — Schema validation
+
+The expected CSV header comes from the field names in
+[`plan-v1.1` §2](https://github.com/rihua-tech/hillstrom-ab-testing/blob/plan-v1.1/01-experiment-analysis-plan.md#2-data-contract-definitions-only-not-outcome-summaries)
+and the [scikit-uplift v0.3.1 field dictionary](https://www.uplift-modeling.com/en/v0.3.1/api/datasets/fetch_hillstrom.html#fields).
+The dictionary uses title case. Lowercasing its labels, with underscores
+preserved (for example, `History_Segment` → `history_segment` and `Zip_Code` →
+`zip_code`), gives the frozen analysis names and the expected literal CSV fields:
+
+```text
+recency,history_segment,history,mens,womens,zip_code,newbie,channel,segment,visit,conversion,spend
+```
+
+| CSV fields | Role in the frozen analysis plan |
+| --- | --- |
+| `segment` | Randomized assignment to one of the three experiment arms |
+| `conversion` | Primary outcome, purchase within two weeks |
+| `visit`, `spend` | Secondary outcomes, any visit and dollars spent in the same two-week window |
+| `recency`, `history` | Numeric pre-treatment covariates, months since prior purchase and historical spending |
+| `newbie`, `mens`, `womens` | Binary pre-treatment covariates, new-customer status and prior purchases in the men's and women's departments |
+| `channel`, `zip_code`, `history_segment` | Categorical pre-treatment fields, historical purchase channel, location class, and historical spend band |
+
+The source contract includes `history_segment`. The frozen plan excludes it
+from regression adjustment because `history` already contains the underlying
+measure.
+
+The validator requires each case-sensitive field name exactly once, in any order.
+The intended grain is one record per randomized customer. The expected count is
+64,000 data records, excluding the header, based on the documented experiment
+size. The schema contains no unique customer ID, so a matching record count
+cannot verify customer uniqueness. [Original challenge description](https://blog.minethatdata.com/2008/03/minethatdata-e-mail-analytics-and-data.html) · [Scikit-uplift dataset description](https://www.uplift-modeling.com/en/v0.3.1/api/datasets/fetch_hillstrom.html#data-description)
+
+Run from the repository root in Windows PowerShell. The checksum gate uses the
+SHA-256 recorded in Phase 1.1.
+
+```powershell
+$csv = 'data/raw/Kevin_Hillstrom_MineThatData_E-MailAnalytics_DataMiningChallenge_2008.03.20.csv'
+$expected = '0e5893329d8b93cefecc571777672028290ab69865718020c78c7284f291aece'
+$actual = (Get-FileHash -LiteralPath $csv -Algorithm SHA256 -ErrorAction Stop).Hash
+if ($actual -ne $expected) { throw "Checksum mismatch. Expected $expected, got $actual." }
+.\.venv\Scripts\python.exe -m src.validate_schema $csv
+```
+
+The validator opens the explicit path read-only as UTF-8 CSV. It counts parsed
+data records, including wrong-width records, and reports the total only if
+parsing reaches the end. A malformed record stops parsing. Diagnostics use
+field names from the contract, positions, widths, and counts. Unknown header
+text and data values are kept out of output. Exit status `0` means the structure
+and count passed. Exit status `1` means validation failed.
