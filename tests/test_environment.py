@@ -18,7 +18,7 @@ SCIENTIFIC_MODULES = ("numpy", "pandas", "scipy", "statsmodels")
 
 def test_python_version_is_pinned() -> None:
     """Keep local development and CI on the frozen Python minor version."""
-    assert sys.version_info[:3] == (3, 12, 10)
+    assert sys.version_info[:2] == (3, 12)
 
 
 @pytest.mark.parametrize("package, expected", PINNED_PACKAGES.items())

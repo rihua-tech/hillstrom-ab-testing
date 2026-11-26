@@ -3,7 +3,7 @@
 **Dataset:** Hillstrom / MineThatData Email Marketing Experiment (~64,000 randomized customers; three arms)  
 **Focus:** Randomized experimentation, statistical inference, causal ITT estimates, and business decision-making  
 **Stack (implementation phases):** Python, SQL, pandas, SciPy, statsmodels  
-**Project status:** **Phase 0 complete: the v1.0 baseline and separate v1.1 amendment are committed, and v1.1 is tagged `plan-v1.1`. This later documentation-only edit reconciles the displayed status after that tag.**
+**Project status:** Phase 0 complete (plan frozen at `plan-v1.1`). Phase 1 in progress.
 
 ## Research question
 
