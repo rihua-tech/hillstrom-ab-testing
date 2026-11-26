@@ -108,3 +108,67 @@ parsing reaches the end. A malformed record stops parsing. Diagnostics use
 field names from the contract, positions, widths, and counts. Unknown header
 text and data values are kept out of output. Exit status `0` means the structure
 and count passed. Exit status `1` means validation failed.
+
+## Phase 1.3 — Field quality and duplicate-looking records
+
+Run this PowerShell block from the repository root. It uses the Phase 1.1
+SHA-256 and requires the Phase 1.2 structure gate before the field audit.
+
+```powershell
+$csv = 'data/raw/Kevin_Hillstrom_MineThatData_E-MailAnalytics_DataMiningChallenge_2008.03.20.csv'
+$expected = '0e5893329d8b93cefecc571777672028290ab69865718020c78c7284f291aece'
+$actual = (Get-FileHash -LiteralPath $csv -Algorithm SHA256 -ErrorAction Stop).Hash
+if ($actual -ne $expected) { throw "Checksum mismatch. Expected $expected, got $actual." }
+.\.venv\Scripts\python.exe -m src.validate_schema $csv
+if ($LASTEXITCODE -ne 0) { throw 'CSV structure validation failed.' }
+.\.venv\Scripts\python.exe -m src.audit_data_quality $csv
+```
+
+### Field rules
+
+Blank or whitespace-only cells count as missing. Each other cell can have one
+invalid reason. The audit validates types and exact label spellings without
+altering the file or its records.
+
+| Fields | Validation rule | Basis |
+| --- | --- | --- |
+| `segment` | `No E-Mail`, `Mens E-Mail`, or `Womens E-Mail` | Frozen plan §1 enumerates raw assignment labels. |
+| `recency` | Finite whole months, 0 through 12 inclusive | The challenge describes months since purchase and the twelve-month customer window. The same-file loader documents an integer type. |
+| `history`, `spend` | Finite, nonnegative monetary values | The dictionary defines the spend measures, the lowest historical band starts at zero, and frozen plan §5 requires checking negative spend. |
+| `mens`, `womens`, `newbie`, `visit`, `conversion` | Finite numeric indicators equal to 0 or 1 | The dictionary defines each as binary. |
+| `zip_code` | `Urban`, `Rural`, or the source spelling `Surburban` | The original dictionary describes the suburban class as `Suburban`. The same-file loader and the author identify the raw spelling as `Surburban`. |
+| `channel` | `Phone`, `Web`, or `Multichannel` | The same-file loader enumerates the exact labels. |
+| `history_segment` | One of the seven documented source labels, from `1) $0 - $100` through `7) $1,000 +` | The same-file loader enumerates all seven labels. |
+
+[Frozen plan `plan-v1.1`](https://github.com/rihua-tech/hillstrom-ab-testing/blob/plan-v1.1/01-experiment-analysis-plan.md) ·
+[Original field definitions](https://blog.minethatdata.com/2008/03/minethatdata-e-mail-analytics-and-data.html) ·
+[Same-file loader and raw labels](https://uplift-sklearn.readthedocs.io/en/latest/_modules/libuplift/datasets/Hillstrom.html) ·
+[Author's raw label clarification](https://blog.minethatdata.com/2026/11/an-entire-bs-in-statistics-rendered.html)
+
+### Internal consistency and review gates
+
+A consistency check requires all of its inputs to pass their individual field
+rules. Each check reports a pooled count of flagged records.
+
+| Rule | Basis | Severity |
+| --- | --- | --- |
+| `history_outside_documented_band` | `history_segment` categorizes the same prior-period spending recorded by `history`. A value outside its labeled dollar interval merits review. Shared endpoints are allowed in both adjacent bands because endpoint ownership is unspecified. | Review |
+| `positive_spend_with_no_purchase` | `spend` records dollars spent and `conversion` records any purchase in the same two-week window. A positive spend paired with no purchase warrants investigation of the source definitions and recording. | Review |
+
+Consistency flags are counted separately from field validity. They report
+a discrepancy without attributing it to a particular field. Missing or invalid
+`conversion` or `segment` sets `HOLD` and explicitly pauses confirmatory
+inference per frozen plan §5. Exit `2` means `HOLD`. Exit `0` means the audit
+completed with `PASS` or `REVIEW`. Exit `1` means the CLI could not complete the
+audit. A review finding stays open for technical review.
+
+Duplicate-looking groups use exact CSV tokens across `recency`,
+`history_segment`, `history`, `mens`, `womens`, `zip_code`, `newbie`, and
+`channel`, including blank or invalid tokens. The audit counts groups of size
+two or more, all records in those groups, and extra records beyond one per
+group. Equal profiles can belong to different customers. The CSV has no
+unique customer ID and all records are retained.
+
+The CLI prints pooled quality counts, including missing and invalid totals
+for `conversion`, `visit`, and `spend`, plus rule and gate status. See the
+[dated audit log](../reports/data-quality-audit.md) for execution and follow-up.
