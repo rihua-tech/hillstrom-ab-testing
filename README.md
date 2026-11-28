@@ -5,9 +5,13 @@
 **Stack (implementation phases):** Python, SQL, pandas, SciPy, statsmodels  
 **Project status:** Phase 0 complete (plan frozen at `plan-v1.1`). Phase 1 in progress.
 
-## Research question
+## Business question
 
-> What is the causal effect of assigning customers to each merchandise-promotion email on two-week purchase conversion versus no email, and under what assumed margins and email costs might each strategy generate positive incremental contribution?
+**Do promotional emails actually make more customers buy, and when is sending them worth the cost?**
+
+Specifically: compared with no email, how does each promotion (men's and women's) affect two-week purchase conversion, and under what margin and sending-cost assumptions is it worth sending?
+
+Formal estimands: [Analysis Plan §3](01-experiment-analysis-plan.md#3-estimands-primary-metric-and-hypotheses).
 
 ## Project at a glance
 
