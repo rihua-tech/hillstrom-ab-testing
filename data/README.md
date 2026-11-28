@@ -1,6 +1,8 @@
 # Dataset handling policy
 
-**Phase 0:** No raw or processed Hillstrom experiment data are present. No treatment-group outcome values have been inspected or computed.
+**Current Phase 1 status:** The raw Hillstrom dataset has been acquired locally
+under `data/raw/`. It is Git-ignored and remains untracked. No processed
+Hillstrom dataset is present.
 
 **After the analysis-plan freeze commit:** Acquire the original/public data from a documented source. Record URL, retrieval timestamp, license/redistribution status, exact file name, SHA-256 hash, known schema, and any transformations before analyzing outcomes.
 
@@ -155,6 +157,12 @@ rules. Each check reports a pooled count of flagged records.
 | `history_outside_documented_band` | `history_segment` categorizes the same prior-period spending recorded by `history`. A value outside its labeled dollar interval merits review. Shared endpoints are allowed in both adjacent bands because endpoint ownership is unspecified. | Review |
 | `positive_spend_with_no_purchase` | `spend` records dollars spent and `conversion` records any purchase in the same two-week window. A positive spend paired with no purchase warrants investigation of the source definitions and recording. | Review |
 
+The current implementation checks positive `spend` without `conversion`. It
+does not check `conversion` with zero `spend` or `conversion` without a
+`visit`. This coverage limitation is a review item to resolve before Issue #4,
+subject to documented dataset semantics. It does not establish either omitted
+combination as invalid or add a validity rule in Phase 1.
+
 Consistency flags are counted separately from field validity. They report
 a discrepancy without attributing it to a particular field. Missing or invalid
 `conversion` or `segment` sets `HOLD` and explicitly pauses confirmatory
@@ -172,3 +180,143 @@ unique customer ID and all records are retained.
 The CLI prints pooled quality counts, including missing and invalid totals
 for `conversion`, `visit`, and `spend`, plus rule and gate status. See the
 [dated audit log](../reports/data-quality-audit.md) for execution and follow-up.
+
+## Phase 1.4 — Sample ratio mismatch (SRM)
+
+Hillstrom's March 2008 challenge describes random assignment of approximately
+one third of customers to each of the men's email, women's email, and no-email
+arms. That post links directly to the same `2008.03.20.csv` URL recorded in
+Phase 1.1. Scikit-uplift v0.3.1 identifies its dataset as a copy of the
+MineThatData challenge dataset and repeats the three one-third allocations.
+[Original March archive](https://blog.minethatdata.com/2008/03/?m=1) ·
+[Challenge permalink](https://blog.minethatdata.com/2008/03/minethatdata-e-mail-analytics-and-data.html) ·
+[Scikit-uplift data description](https://www.uplift-modeling.com/en/v0.3.1/api/datasets/fetch_hillstrom.html#data-description)
+
+Run from the repository root in PowerShell. This sequence verifies the Phase 1.1
+hash, runs the Phase 1.2 structure check, and requires the Phase 1.3 audit to
+complete without `HOLD` before starting SRM.
+
+```powershell
+$csv = 'data/raw/Kevin_Hillstrom_MineThatData_E-MailAnalytics_DataMiningChallenge_2008.03.20.csv'
+$expected = '0e5893329d8b93cefecc571777672028290ab69865718020c78c7284f291aece'
+$actual = (Get-FileHash -LiteralPath $csv -Algorithm SHA256 -ErrorAction Stop).Hash
+if ($actual -ne $expected) { throw "Checksum mismatch. Expected $expected, got $actual." }
+.\.venv\Scripts\python.exe -m src.validate_schema $csv
+if ($LASTEXITCODE -ne 0) { throw 'CSV structure validation failed.' }
+.\.venv\Scripts\python.exe -m src.audit_data_quality $csv
+$qualityExit = $LASTEXITCODE
+if ($qualityExit -eq 2) { throw 'Phase 1.3 HOLD. SRM was not run.' }
+if ($qualityExit -ne 0) { throw 'Phase 1.3 audit did not complete. SRM was not run.' }
+.\.venv\Scripts\python.exe -m src.check_srm $csv
+```
+
+The SRM counter uses only `segment`. It retains every assignment and stops
+before testing on a missing or illegal label. SciPy's Pearson chi-square test
+uses `N/3` for each expected count, with no integer rounding and two degrees
+of freedom. `p < 0.001` sets `HOLD` and pauses confirmatory interpretation
+pending investigation. Exit `0` means the SRM gate did not trigger. Exit `1`
+means the SRM input could not be tested, and exit `2` means SRM `HOLD`.
+The gate checks the assignment proportions against the documented design.
+[Frozen plan §5](https://github.com/rihua-tech/hillstrom-ab-testing/blob/plan-v1.1/01-experiment-analysis-plan.md#5-data-quality-and-randomization-diagnostics--ordered-gates)
+
+See the [dated audit log](../reports/data-quality-audit.md#phase-14-srm-run--2026-11-26)
+for the local execution and gate status.
+
+## Phase 1.5 — Pre-treatment balance
+
+After the Phase 1.4 gates, run the pre-treatment diagnostic from the repository
+root with `.\.venv\Scripts\python.exe -m src.check_balance $csv`. It reads
+`segment` for membership and the seven fields in frozen plan §5. The numeric
+fields are `recency` and
+`history` on their original scales. The binary fields are `mens`, `womens`,
+and `newbie`. The nominal fields are `channel` and `zip_code`.
+
+Use three signed diagnostic contrasts in this order: Men's minus Control,
+Women's minus Control, and Women's minus Men's. For each, the SMD is
+`(mean_left - mean_right) / sqrt((variance_left + variance_right) / 2)`.
+Numeric variances are sample variances (`ddof = 1`). Each binary or nominal
+level uses an indicator equal to one for that level and zero for all other
+valid levels. Its mean is the valid-record proportion `p`, with variance
+`p * (1 - p)`. Both levels of each binary field are shown, so their signed
+SMDs mirror one another.
+
+Each arm and field reports its full assignment total, valid denominator,
+missing count, and invalid count. SMDs and categorical shares use valid
+values for that field in each arm. All records remain in the population.
+The Phase 1.3 validity rules are reused. A numeric value beyond the finite
+floating-point range is also reported as invalid for this diagnostic.
+Numeric diagnostics require at least two valid values per arm and indicators
+require at least one. Insufficient values, zero pooled variance, or
+non-finite SMDs are `UNDEFINED` and flagged for review.
+
+`|SMD| > 0.10` is evaluated before display rounding. Findings (including
+undefined diagnostics and missing or invalid values) set `REVIEW`. `PASS` and
+`REVIEW` both exit `0`; unreadable or structurally invalid inputs exit `1`.
+Balance flags are diagnostic review items. They preserve the full population
+and the frozen analysis rules.
+
+## Phase 1.6 — Independent SQL reconciliation
+
+After the balance check, run
+`.\.venv\Scripts\python.exe -m src.reconcile_assignments $csv` from the
+repository root with the same verified CSV. Python and SQL independently
+compute the assignment counts, but both paths share the same standard-library
+Python CSV parser. The loader inserts one parsed `segment` value per data record
+into an in-memory SQLite table. [The query](../sql/reconcile_assignments.sql)
+uses `COUNT(*)` for the total and conditional counts for each exact arm, blank
+or whitespace-only assignments, and other illegal labels. The query output
+contains counts only.
+
+The comparator checks the SQLite total against Python schema validation and the
+three SQLite arm counts against the Python SRM counter. It also checks full
+accounting, including missing and illegal labels. `PASS` exits `0`. Missing or
+illegal labels, unavailable Python arm counts, incomplete accounting, or
+a count difference produce `BLOCKED` and exit `2`. An unreadable or structurally
+invalid input exits `1`. The reconciliation is an independent aggregation and
+count check, not an independent CSV-parser check. The Claude Code
+independent-review report also reproduced the assignment counts with pandas'
+C parser, providing a parser-diverse verification. The earlier checks govern
+the quality and SRM gates.
+
+## Phase 1.7 — Full local Phase 1 workflow
+
+Run from the repository root using the existing Windows virtual environment
+and the local Phase 1.1 artifact. Each check completes before the next one.
+A nonzero exit, including `HOLD` or a SQL blocker, stops the sequence.
+
+```powershell
+& {
+    $ErrorActionPreference = 'Stop'
+    $csv = 'data/raw/Kevin_Hillstrom_MineThatData_E-MailAnalytics_DataMiningChallenge_2008.03.20.csv'
+    $expected = '0e5893329d8b93cefecc571777672028290ab69865718020c78c7284f291aece'
+    $actual = (Get-FileHash -LiteralPath $csv -Algorithm SHA256 -ErrorAction Stop).Hash
+    if ($actual -ne $expected) { throw "Checksum mismatch. Expected $expected, got $actual." }
+    "SHA-256 verified: $actual"
+
+    $phase1Python = '.\.venv\Scripts\python.exe'
+    $phase1Modules = @(
+        'src.validate_schema',
+        'src.audit_data_quality',
+        'src.check_srm',
+        'src.check_balance',
+        'src.reconcile_assignments'
+    )
+    foreach ($phase1Module in $phase1Modules) {
+        & $phase1Python -m $phase1Module $csv
+        if ($LASTEXITCODE -ne 0) { throw "$phase1Module exited $LASTEXITCODE." }
+    }
+}
+```
+
+Local verification uses synthetic fixtures and the Git ignore rules:
+
+```powershell
+.\.venv\Scripts\python.exe -m ruff check .
+.\.venv\Scripts\python.exe -m pytest
+git diff --check
+git check-ignore -v -- data/raw/Kevin_Hillstrom_MineThatData_E-MailAnalytics_DataMiningChallenge_2008.03.20.csv
+git ls-files -- data/raw/
+```
+
+See the [consolidated audit](../reports/data-quality-audit.md#phase-17-consolidated-acceptance)
+for the executed checks, review decisions, and remaining limitations.
