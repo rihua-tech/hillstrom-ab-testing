@@ -3,7 +3,8 @@
 **Dataset:** Hillstrom / MineThatData Email Marketing Experiment (~64,000 randomized customers; three arms)  
 **Focus:** Randomized experimentation, statistical inference, causal ITT estimates, and business decision-making  
 **Stack (implementation phases):** Python, SQL, pandas, SciPy, statsmodels  
-**Project status:** Phase 0 complete (plan frozen at `plan-v1.1`). Phase 1 in progress.
+**Project status:** Phases 0–1 complete. Phase 2 synthetic validation implemented
+and ready for independent review; Issue #4 outcome inference has not begun.
 
 ## Business question
 
@@ -29,22 +30,43 @@ Read **[`01-experiment-analysis-plan.md`](01-experiment-analysis-plan.md)** for 
 
 ## Repository map
 
-| Path | Purpose | Phase 0 state |
+| Path | Purpose | Current state |
 | --- | --- | --- |
 | `01-experiment-analysis-plan.md` | Pre-specified plan + versioned pre-arm-level-outcome amendment | v1.0 and v1.1 committed; v1.1 tagged |
 | `data/README.md` | Provenance policy; no dataset included | Present |
-| `src/` | Future reusable analysis modules | Empty |
-| `tests/` | Future unit and simulation tests | Empty |
-| `sql/` | Future independent data-quality reconciliation | Empty |
-| `reports/` | Future business decision memo | Empty |
+| `src/` | Reusable validation and inference modules | Phases 1–2 implemented |
+| `tests/` | Unit and deterministic simulation tests | Phases 1–2 implemented |
+| `sql/` | Independent data-quality reconciliation | Phase 1 implemented |
+| `reports/` | Audit and synthetic-validation reports | Phases 1–2 implemented |
 | `figures/` | Future final result figures | Empty |
 | `.gitignore`, `.editorconfig` | Minimal project hygiene | Present |
+
+## Phase 2 synthetic validation
+
+The reusable inference code and all six frozen synthetic scenarios are implemented.
+See the [simulation validation report](reports/simulation-validation.md) and
+[machine-readable results](reports/simulation-results.json). These artifacts contain
+synthetic results only and do not expose or calibrate to Hillstrom treatment-arm
+outcomes. Independent statistical and technical acceptance is still required before
+Issue #4.
+
+Reproduce the full 2,000-replication workflow separately from CI:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.simulate_experiments
+```
 
 ## Phase boundaries
 
 **Phase 0:** Complete. The original baseline and the separately documented **v1.1 methodological supplement** were recorded in Git, with v1.1 tagged `plan-v1.1`. Project records state that no dataset was downloaded or analyzed in Phase 0; confirmation of no prior arm-level outcome inspection remains a user-attestation item. Limited exposure to an unverified pooled-rate remark is disclosed.
 
-**Phases 1–5 (later):** Data validation/SRM → synthetic simulation validation → primary and secondary A/B/n inference (including adjustment/subgroups) → business memo → reproducible portfolio release. Each phase requires review before moving forward. The project stops at portfolio release; a dashboard, API, and web app are deliberately out of scope.
+**Phases 1–2:** Data validation/SRM is complete. Synthetic simulation validation is
+implemented and awaiting independent review.
+
+**Phases 3–5 (not started):** Primary and secondary A/B/n inference (including
+adjustment/subgroups) → business memo → reproducible portfolio release. Each phase
+requires review before moving forward. The project stops at portfolio release; a
+dashboard, API, and web app are deliberately out of scope.
 
 ## Dataset attribution
 
