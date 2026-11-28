@@ -170,4 +170,3 @@ def test_rank_deficient_lin_design_raises_instead_of_hiding_failure():
 
     with pytest.raises(ValueError, match="rank deficient"):
         fit_lin_and_unadjusted_hc3(outcomes, assignments, constant_covariate)
-
