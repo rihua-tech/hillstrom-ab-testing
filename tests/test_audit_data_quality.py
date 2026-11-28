@@ -34,7 +34,7 @@ def _write_csv(tmp_path, *changes):
 def test_valid_audit_keeps_bytes_and_accepts_shared_history_boundary(tmp_path):
     path = _write_csv(
         tmp_path,
-        {"history": "100", "visit": "0"},
+        {"history": "100", "conversion": "0", "visit": "0", "spend": "0"},
         {"history": "100", "history_segment": "2) $100 - $200"},
     )
     original = path.read_bytes()
@@ -138,6 +138,64 @@ def test_consistency_findings_require_valid_inputs_and_are_review_only(tmp_path)
     assert result.status == "REVIEW"
     assert not result.hold_fields
     assert "positive_spend_with_no_purchase | REVIEW | 1" in format_summary(result)
+
+
+@pytest.mark.parametrize(
+    ("spend", "visit", "expected"),
+    [
+        ("0.00", "1", {"conversion_with_zero_spend": 1}),
+        ("15.20", "0", {"conversion_without_visit": 1}),
+        ("0.00", "0", {"conversion_with_zero_spend": 1, "conversion_without_visit": 1}),
+    ],
+)
+def test_conversion_consistency_flags_are_pooled_review_only(
+    tmp_path, spend, visit, expected
+):
+    path = _write_csv(tmp_path, {"spend": spend, "visit": visit})
+    original = path.read_bytes()
+
+    result = audit_csv(path, expected_records=1)
+
+    assert result.consistency == expected
+    assert result.status == "REVIEW"
+    assert not result.hold_fields
+    assert not any(result.field_issues.values())
+    assert result.records == 1
+    assert path.read_bytes() == original
+    output = format_summary(result)
+    assert "No E-Mail" not in output
+    assert "Confirmatory inference: no hold from this audit" in output
+    assert (
+        f"conversion_with_zero_spend | REVIEW | "
+        f"{expected.get('conversion_with_zero_spend', 0)}" in output
+    )
+    assert (
+        f"conversion_without_visit | REVIEW | "
+        f"{expected.get('conversion_without_visit', 0)}" in output
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected"),
+    [
+        ("conversion", "", {}),
+        ("conversion", "2", {}),
+        ("spend", "", {"conversion_without_visit": 1}),
+        ("spend", "-1", {"conversion_without_visit": 1}),
+        ("visit", "", {"conversion_with_zero_spend": 1}),
+        ("visit", "2", {"conversion_with_zero_spend": 1}),
+    ],
+)
+def test_conversion_consistency_requires_valid_values_for_each_pair(
+    tmp_path, field, value, expected
+):
+    path = _write_csv(tmp_path, {"spend": "0", "visit": "0"} | {field: value})
+
+    result = audit_csv(path, expected_records=1)
+
+    assert result.consistency == expected
+    assert result.field_issues[field].total() == 1
+    assert result.hold_fields == (("conversion",) if field == "conversion" else ())
 
 
 def test_duplicate_candidates_use_exact_pretreatment_fields_only(tmp_path):

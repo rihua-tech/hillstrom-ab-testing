@@ -41,6 +41,8 @@ HOLD_FIELDS = ("conversion", "segment")
 CONSISTENCY_RULES = (
     "history_outside_documented_band",
     "positive_spend_with_no_purchase",
+    "conversion_with_zero_spend",
+    "conversion_without_visit",
 )
 
 
@@ -119,9 +121,14 @@ def _audit_rows(rows: Iterable[dict[str, str]]) -> AuditResult:
             if history < low or (high is not None and history > high):
                 consistency["history_outside_documented_band"] += 1
 
+        conversion = numbers.get("conversion")
         spend = numbers.get("spend")
-        if numbers.get("conversion") == 0 and spend is not None and spend > 0:
+        if conversion == 0 and spend is not None and spend > 0:
             consistency["positive_spend_with_no_purchase"] += 1
+        if conversion == 1 and spend == 0:
+            consistency["conversion_with_zero_spend"] += 1
+        if conversion == 1 and numbers.get("visit") == 0:
+            consistency["conversion_without_visit"] += 1
 
         pre_treatment_keys[tuple(row[name] for name in PRE_TREATMENT_FIELDS)] += 1
 

@@ -183,6 +183,29 @@ SMDs, and gate statuses reproduced the individual runs above. Each of the
 arm denominator. The complete local pytest suite passed (55 tests) and
 Ruff and Git whitespace checks passed.
 
+### Supplemental consistency review — 2026-11-27
+
+Following independent review and before treatment-arm outcome analysis,
+the Phase 1 audit added two supplemental post-`plan-v1.1` diagnostics.
+Each uses only records with valid values for its own pair of fields and
+reports a pooled count. Both rules have `REVIEW` severity.
+
+| Supplemental rule | Condition | Pooled flagged records |
+| --- | --- | ---: |
+| `conversion_with_zero_spend` | `conversion = 1` and `spend = 0` | 0 |
+| `conversion_without_visit` | `conversion = 1` and `visit = 0` | 0 |
+
+The local rerun on November 27 in New York matched the provenance checksum
+and retained all 64,000 records. Schema, SRM, pre-treatment balance, and SQL
+reconciliation passed. The pooled audit remained `REVIEW` (exit `0`) due to
+duplicate-looking pre-treatment profiles. No `HOLD` was triggered.
+
+This resolves the implementation-coverage follow-up. The zero counts describe
+the checked CSV. The documented field definitions do not establish whether a
+purchase must have positive recorded spend or a recorded visit. Any future
+flags warrant investigation of those definitions and the source recording.
+They leave field validity and the existing `HOLD` criteria unchanged.
+
 ### Technical review and open items
 
 - Reviewed the tracked diff and every new file, including the existing SRM
@@ -194,11 +217,6 @@ Ruff and Git whitespace checks passed.
   permitted quality counts for outcome fields. SRM and the SQLite loader
   project assignment only, and balance projects the seven frozen fields
   plus assignment. All 64,000 records were retained.
-- The outcome-consistency implementation checks positive `spend` without
-  `conversion`, but does not check `conversion` with zero `spend` or
-  `conversion` without a `visit`. Resolve this review item before Issue #4,
-  subject to documented dataset semantics. No additional validity rule is
-  adopted in Phase 1.
 - The 420 duplicate-looking pre-treatment groups remain a review item.
   The source lacks a unique customer ID, so customer uniqueness is
   unverified. The documented decision is to retain all observations.
@@ -206,9 +224,12 @@ Ruff and Git whitespace checks passed.
   `data/raw/`, and that directory has no tracked entries. Explicit dataset
   licensing, redistribution permission, and a provider checksum remain
   unverified as documented in Phase 1.1.
-- Claude Code's independent review found no P0 or P1 defects; statistical
-  correctness and research integrity passed. Technical acceptance for the
-  exact working-tree changes remains conditional on remote CI.
+- Claude Code's independent review found no P0 or P1 defects. Statistical
+  correctness and research integrity passed. GitHub Actions CI passed on the
+  reviewed PR #8 baseline `fe983d048c9fe296b294645373d5841307e20eac`.
+  [Run 46101423558](https://github.com/rihua-tech/hillstrom-ab-testing/actions/runs/46101423558)
+  records that result. CI for the supplemental changes remains pending until
+  they are committed and pushed.
 
 ### Issue #2 acceptance
 
@@ -217,10 +238,10 @@ Ruff and Git whitespace checks passed.
 | Phase 1.0 development safeguards | Met. The reviewed PR #7 supplies the pinned environment, Ruff, pytest, and fast CI. |
 | Authentic acquisition, provenance, terms, and raw-data protection | Met. Phase 1.1 records the source, timestamp, terms status, and SHA-256. |
 | Schema, legal values, grain, and duplicate-looking records | Met within the identifier limitation. The schema and field checks ran, and the repeat-profile review retained all records. |
-| Pooled outcome validity | Met for the implemented Phase 1 checks. Missing/invalid counts were checked only on pooled data; the documented outcome-consistency coverage limitation remains open before Issue #4. |
+| Pooled outcome validity | Met for the implemented Phase 1 checks. The supplemental diagnostics resolve the coverage follow-up. Dataset semantics remain limited as documented above. |
 | Documented allocation and SRM | Met. The source supports 1:1:1 and the prespecified test passed. |
 | Pre-treatment balance | Met. All seven covariates and three pairwise contrasts were evaluated with no review flags. |
 | Independent SQL counts, audit decisions, reproducible tests | Met. All count differences were zero, the discrepancy tests passed, and the independent reviewer reproduced the counts with pandas' C parser. The Python and SQL paths share the standard-library Python CSV parser. |
 | Provenance, checksum, terms status, and protection documented | Met. The raw CSV is local and ignored. |
-| Reproducible Python/SQL diagnostics, transparent exceptions, passing CI | Pending remote CI on the exact changes. Local diagnostics, lint, and tests passed. |
+| Reproducible Python/SQL diagnostics, transparent exceptions, passing CI | Baseline CI passed. Local diagnostics, Ruff, and all 64 tests passed with the supplemental checks. Supplemental CI is pending. |
 | SRM/balance gates reviewed with outcome protection | Met in local self-review. Outputs contained assignment and pre-treatment diagnostics plus permitted pooled quality counts. |

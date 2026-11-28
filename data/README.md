@@ -156,12 +156,17 @@ rules. Each check reports a pooled count of flagged records.
 | --- | --- | --- |
 | `history_outside_documented_band` | `history_segment` categorizes the same prior-period spending recorded by `history`. A value outside its labeled dollar interval merits review. Shared endpoints are allowed in both adjacent bands because endpoint ownership is unspecified. | Review |
 | `positive_spend_with_no_purchase` | `spend` records dollars spent and `conversion` records any purchase in the same two-week window. A positive spend paired with no purchase warrants investigation of the source definitions and recording. | Review |
+| `conversion_with_zero_spend` | Valid `conversion = 1` with valid `spend = 0`. | Review |
+| `conversion_without_visit` | Valid `conversion = 1` with valid `visit = 0`. | Review |
 
-The current implementation checks positive `spend` without `conversion`. It
-does not check `conversion` with zero `spend` or `conversion` without a
-`visit`. This coverage limitation is a review item to resolve before Issue #4,
-subject to documented dataset semantics. It does not establish either omitted
-combination as invalid or add a validity rule in Phase 1.
+The two conversion checks are supplemental post-`plan-v1.1` diagnostics
+introduced following independent review, before treatment-arm outcome analysis.
+They resolve the implementation-coverage follow-up for Issue #4. Each check
+flagged **0 of 64,000 records** in the November 27 pooled audit. The documented
+field definitions do not establish whether a purchase must have positive
+recorded spend or a recorded visit. These flags indicate potential anomalies
+for review. All observations remain in the dataset. See the
+[supplemental audit](../reports/data-quality-audit.md#supplemental-consistency-review--2026-11-27).
 
 Consistency flags are counted separately from field validity. They report
 a discrepancy without attributing it to a particular field. Missing or invalid
@@ -320,3 +325,9 @@ git ls-files -- data/raw/
 
 See the [consolidated audit](../reports/data-quality-audit.md#phase-17-consolidated-acceptance)
 for the executed checks, review decisions, and remaining limitations.
+
+GitHub Actions CI passed on the reviewed PR #8 baseline commit
+`fe983d048c9fe296b294645373d5841307e20eac`.
+[Run 46101423558](https://github.com/rihua-tech/hillstrom-ab-testing/actions/runs/46101423558)
+records that result. CI for the supplemental changes remains pending until
+they are committed and pushed.
